@@ -19,6 +19,9 @@ odoo.local.conf
 filestore/
 .local/
 
+# PyCharm
+.idea/
+
 # Sistema operativo
 .DS_Store
 Thumbs.db
