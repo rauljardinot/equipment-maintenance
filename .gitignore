@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+odoo.conf
+odoo.local.conf
+
+# Datos y registros locales
+*.log
+filestore/
+.local/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
