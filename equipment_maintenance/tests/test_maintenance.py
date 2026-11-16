@@ -27,6 +27,40 @@ class TestMaintenance(TransactionCase):
         with self.assertRaises(ValidationError), self.cr.savepoint():
             self._task(hours=-1)
 
+    def test_equipment_code_unique_on_update(self):
+        other = self.equipment.copy({"code": "TEST-COMP-02"})
+        with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError), self.cr.savepoint():
+            other.write({"code": self.equipment.code})
+
+    def test_negative_hours_rejected_on_update(self):
+        task = self._task(hours=1)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            task.write({"hours": -1})
+
+    def test_done_without_hours_rejected_on_create(self):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            self._task(state="done")
+
+    def test_done_without_hours_rejected_on_direct_write(self):
+        task = self._task()
+        # El kanban y las llamadas RPC cambian el estado mediante write.
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            task.write({"state": "done"})
+
+    def test_done_with_hours_on_create_and_direct_write(self):
+        done_task = self._task(state="done", hours=0.5)
+        self.assertEqual(done_task.state, "done")
+        task = self._task()
+        task.write({"state": "done", "hours": 0.5})
+        self.assertEqual(task.state, "done")
+        self.assertEqual(task.hours, 0.5)
+
+    def test_zero_hours_allowed_before_completion(self):
+        task = self._task(hours=0)
+        task.action_start()
+        self.assertEqual(task.state, "in_progress")
+        self.assertEqual(task.hours, 0)
+
     def test_done_requires_hours(self):
         task = self._task()
         with self.assertRaises(ValidationError), self.cr.savepoint():

@@ -48,9 +48,15 @@ python3 /ruta/odoo18/odoo-bin -c /ruta/odoo.conf \
   --http-port=0 --workers=0 --max-cron-threads=0 --without-demo=all
 ```
 
-Validación realizada en Odoo 18: instalación completa y cuatro tests
+Validación realizada en Odoo 18: instalación, actualización y diez tests
 `TransactionCase` aprobados, sin fallos ni errores. No se ha realizado todavía
 una revisión visual en navegador.
+
+Las pruebas cubren referencias duplicadas al crear y editar equipos, horas
+negativas al crear y editar tareas, bloqueo de tareas hechas sin horas al crear,
+usar el botón o escribir el estado directamente (como hace el kanban), finalización
+con horas positivas y los botones de cambio de estado. Cero horas es válido
+mientras la tarea no esté hecha.
 
 ## Decisiones de esta etapa
 
@@ -83,3 +89,6 @@ y se verificó la firma de agrupación en el código local de Odoo.
 Se corrigió la ejecución de las pruebas para usar un puerto HTTP libre,
 evitar el conflicto con el servidor local y trabajar en una base separada.
 Los commits separan modelos y permisos básicos, interfaz, y pruebas/documentación.
+En la revisión de reglas se conservaron las validaciones ya implementadas y se
+amplió la cobertura de cuatro a diez tests, incluyendo edición y cambios directos
+de estado para comprobar que no dependen únicamente de los botones.
