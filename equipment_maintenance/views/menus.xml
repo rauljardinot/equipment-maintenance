@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_maintenance_root" name="Mantenimiento" sequence="10" groups="base.group_user"/>
+    <menuitem id="menu_equipment" name="Equipos" parent="menu_maintenance_root" action="equipment_action" sequence="10"/>
+    <menuitem id="menu_tasks" name="Tareas de mantenimiento" parent="menu_maintenance_root" action="task_action" sequence="20"/>
+    <menuitem id="menu_configuration" name="Configuración" parent="menu_maintenance_root" sequence="90"/>
+</odoo>
