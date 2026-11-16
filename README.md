@@ -1,6 +1,6 @@
 # Equipment Maintenance — Odoo 18
 
-Primera etapa del proyecto de prueba de mantenimiento de equipos.
+Proyecto de prueba de mantenimiento de equipos.
 Módulo técnico: `equipment_maintenance`. No depende de la aplicación estándar
 `maintenance`: utiliza modelos propios para este ejercicio.
 
@@ -10,7 +10,7 @@ Módulo técnico: `equipment_maintenance`. No depende de la aplicación estánda
 - Equipos con nombre, referencia única, ubicación y foto.
 - Horas totales de mantenimiento calculadas por equipo, visibles en lista,
   formulario y kanban.
-- Tareas con equipo, responsable, fecha prevista, horas y cuatro estados:
+- Tareas con equipo, responsable asignado, fecha prevista, horas, nota y cuatro estados:
   borrador, en curso, hecha y cancelada.
 - Listas, formularios y kanban. El kanban de tareas muestra la foto, el nombre
   y la referencia del equipo, el estado, el responsable, la fecha y las horas.
@@ -50,7 +50,7 @@ python3 /ruta/odoo18/odoo-bin -c /ruta/odoo.conf \
   --http-port=0 --workers=0 --max-cron-threads=0 --without-demo=all
 ```
 
-Validación realizada en Odoo 18: instalación, actualización y catorce tests
+Validación realizada en Odoo 18: instalación, actualización y veinticuatro tests
 `TransactionCase` aprobados, sin fallos ni errores. No se ha realizado todavía
 una revisión visual en navegador.
 
@@ -76,13 +76,55 @@ tareas, al trasladarlas a otro equipo y después de guardar y volver a leer el t
 - No se permite eliminar equipos con tareas asociadas.
 - Configuración queda definida sin acción ni submenús. Odoo oculta los menús
   vacíos; aparecerá cuando se añada su primera opción.
-- Por ahora todos los usuarios internos tienen permisos de lectura, creación,
-  edición y eliminación. Los usuarios de portal y públicos no tienen acceso.
+- El grupo Responsable administra equipos y tareas; el grupo Usuario solo accede
+  a sus tareas asignadas y modifica estado y nota. Los usuarios sin estos grupos,
+  de portal y públicos no tienen acceso.
+
+## Seguridad y asignación de permisos
+
+Después de reiniciar Odoo y actualizar el módulo (`-u equipment_maintenance`),
+abrir **Ajustes → Usuarios y compañías → Usuarios**, seleccionar un usuario y
+asignar su nivel en **Mantenimiento de equipos**:
+
+| Nivel | Lectura | Cambios permitidos | Crear / eliminar |
+| --- | --- | --- | --- |
+| Usuario | Solo sus tareas y los datos básicos de sus equipos | Estado y nota de sus tareas | No |
+| Responsable | Todos los equipos y tareas | Todos los valores editables | Sí |
+| Sin grupo | Sin acceso al módulo | Ninguno | No |
+
+El grupo Responsable incluye los permisos del grupo Usuario. El campo
+**Responsable** de una tarea es su usuario asignado; esto no le otorga el grupo
+Responsable. No se crean cuentas ni contraseñas automáticamente.
+
+El usuario ve el menú de tareas; los menús Equipos y Configuración se reservan
+al Responsable. Los datos de equipo, asignación, fecha y horas son de solo lectura
+para el Usuario. Puede cambiar el estado con los botones o arrastrando en kanban
+y editar una nota de texto. Para finalizar, la tarea debe tener horas positivas
+registradas por un Responsable. La nota se puede editar; no es un historial de
+comentarios.
+
+Las ACL impiden crear y eliminar; las reglas de registro limitan la lectura y
+edición a las tareas asignadas, y una validación en `write` permite al Usuario
+únicamente `state` y `note`, también por RPC o importación. Los Responsables
+mantienen las reglas de código único y horas válidas y la protección frente a
+eliminar equipos con tareas asociadas.
+
+El historial de tareas del equipo y su total de horas se reservan al Responsable
+para no revelar actividad de otros usuarios sobre un equipo compartido.
+Las ACL existentes se actualizan con los mismos identificadores, retirando el
+acceso general que tenían los usuarios internos en la versión anterior.
+Es necesario asignar los nuevos grupos a las cuentas que deban usar el módulo.
+El superusuario técnico de Odoo conserva su acceso administrativo habitual.
+
+Las diez pruebas de seguridad usan usuarios reales de prueba con `with_user`:
+comprueban aislamiento entre asignaciones (también equipos compartidos), edición
+de estado y nota, bloqueo de los demás campos y de escrituras mixtas, creación,
+copia y eliminación prohibidas, restricciones de equipos, horas al finalizar,
+acceso completo del Responsable y denegación al usuario interno sin grupo.
 
 ## Próximas etapas / con más tiempo
 
-- Grupos de usuario y responsable con permisos distintos.
-- Ampliar pruebas de seguridad y revisar visualmente las vistas con datos reales.
+- Revisar visualmente las vistas con datos reales.
 
 ## Uso de IA
 
@@ -101,3 +143,9 @@ de estado para comprobar que no dependen únicamente de los botones.
 Para el total por equipo se pidió un campo calculado; se aceptó sumar las horas
 de todas las tareas sin filtrar por estado y se añadieron pruebas de recálculo,
 reasignación y persistencia del resultado.
+
+Para seguridad se pidió un Usuario limitado a sus asignaciones y un Responsable
+con administración completa. Se implementaron ACL, reglas de registro, un límite
+de campos en el servidor y una nota de texto. Las pruebas detectaron que el
+historial relacional de un equipo compartido podía contener identificadores de
+otras tareas en caché; se restringieron ese historial y el total al Responsable.
