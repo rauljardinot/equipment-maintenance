@@ -8,6 +8,8 @@ Módulo técnico: `equipment_maintenance`. No depende de la aplicación estánda
 
 - Menú **Mantenimiento → Equipos / Tareas de mantenimiento**.
 - Equipos con nombre, referencia única, ubicación y foto.
+- Horas totales de mantenimiento calculadas por equipo, visibles en lista,
+  formulario y kanban.
 - Tareas con equipo, responsable, fecha prevista, horas y cuatro estados:
   borrador, en curso, hecha y cancelada.
 - Listas, formularios y kanban. El kanban de tareas muestra la foto, el nombre
@@ -48,7 +50,7 @@ python3 /ruta/odoo18/odoo-bin -c /ruta/odoo.conf \
   --http-port=0 --workers=0 --max-cron-threads=0 --without-demo=all
 ```
 
-Validación realizada en Odoo 18: instalación, actualización y diez tests
+Validación realizada en Odoo 18: instalación, actualización y catorce tests
 `TransactionCase` aprobados, sin fallos ni errores. No se ha realizado todavía
 una revisión visual en navegador.
 
@@ -57,6 +59,8 @@ negativas al crear y editar tareas, bloqueo de tareas hechas sin horas al crear,
 usar el botón o escribir el estado directamente (como hace el kanban), finalización
 con horas positivas y los botones de cambio de estado. Cero horas es válido
 mientras la tarea no esté hecha.
+También se comprueba el total de horas sin tareas, al crear, editar y eliminar
+tareas, al trasladarlas a otro equipo y después de guardar y volver a leer el total.
 
 ## Decisiones de esta etapa
 
@@ -66,6 +70,9 @@ mientras la tarea no esté hecha.
   estado y responsable.
 - Las horas se guardan como número decimal y se muestran con `float_time`:
   1,5 horas se representan como 01:30.
+- El total de horas es calculado, almacenado y de solo lectura. Suma todas las
+  tareas, incluidas las canceladas: el estado no elimina las horas registradas.
+  Se recalcula al cambiar horas, crear o eliminar tareas o cambiar su equipo.
 - No se permite eliminar equipos con tareas asociadas.
 - Configuración queda definida sin acción ni submenús. Odoo oculta los menús
   vacíos; aparecerá cuando se añada su primera opción.
@@ -75,7 +82,6 @@ mientras la tarea no esté hecha.
 ## Próximas etapas / con más tiempo
 
 - Grupos de usuario y responsable con permisos distintos.
-- Campo calculado con las horas totales de mantenimiento por equipo.
 - Ampliar pruebas de seguridad y revisar visualmente las vistas con datos reales.
 
 ## Uso de IA
@@ -92,3 +98,6 @@ Los commits separan modelos y permisos básicos, interfaz, y pruebas/documentaci
 En la revisión de reglas se conservaron las validaciones ya implementadas y se
 amplió la cobertura de cuatro a diez tests, incluyendo edición y cambios directos
 de estado para comprobar que no dependen únicamente de los botones.
+Para el total por equipo se pidió un campo calculado; se aceptó sumar las horas
+de todas las tareas sin filtrar por estado y se añadieron pruebas de recálculo,
+reasignación y persistencia del resultado.

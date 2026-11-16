@@ -4,7 +4,7 @@
         <field name="name">equipment.maintenance.equipment.list</field>
         <field name="model">equipment.maintenance.equipment</field>
         <field name="arch" type="xml">
-            <list string="Equipos"><field name="name"/><field name="code"/><field name="location"/></list>
+            <list string="Equipos"><field name="name"/><field name="code"/><field name="location"/><field name="total_maintenance_hours" widget="float_time" sum="Total horas"/></list>
         </field>
     </record>
     <record id="equipment_view_form" model="ir.ui.view">
@@ -14,7 +14,7 @@
             <form string="Equipo">
                 <sheet>
                     <field name="image_1920" widget="image" class="oe_avatar"/>
-                    <group><field name="name"/><field name="code"/><field name="location"/></group>
+                    <group><field name="name"/><field name="code"/><field name="location"/><field name="total_maintenance_hours" widget="float_time"/></group>
                     <notebook><page string="Tareas de mantenimiento">
                         <field name="task_ids" context="{'default_equipment_id': id}">
                             <list><field name="responsible_id"/><field name="planned_date"/><field name="hours" widget="float_time"/><field name="state"/></list>
@@ -32,6 +32,7 @@
                 <field name="image_1920" widget="image" options="{'size': [96, 96]}"/>
                 <field name="name" class="fw-bold"/>
                 <field name="code"/><field name="location"/>
+                <div>Horas totales: <field name="total_maintenance_hours" widget="float_time"/></div>
             </t></templates></kanban>
         </field>
     </record>

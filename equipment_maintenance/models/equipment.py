@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class Equipment(models.Model):
@@ -13,6 +13,16 @@ class Equipment(models.Model):
     task_ids = fields.One2many(
         "equipment.maintenance.task", "equipment_id", string="Tareas de mantenimiento"
     )
+    total_maintenance_hours = fields.Float(
+        string="Horas totales de mantenimiento",
+        compute="_compute_total_maintenance_hours", store=True,
+        help="Suma de las horas registradas en todas las tareas del equipo, en cualquier estado.",
+    )
+
+    @api.depends("task_ids.hours")
+    def _compute_total_maintenance_hours(self):
+        for equipment in self:
+            equipment.total_maintenance_hours = sum(equipment.task_ids.mapped("hours"))
 
     _sql_constraints = [
         ("code_unique", "unique(code)", "La referencia del equipo debe ser única."),

@@ -23,6 +23,38 @@ class TestMaintenance(TransactionCase):
         with mute_logger("odoo.sql_db"), self.assertRaises(IntegrityError), self.cr.savepoint():
             self.equipment.copy({"code": self.equipment.code})
 
+    def test_total_hours_without_tasks(self):
+        self.assertEqual(self.equipment.total_maintenance_hours, 0)
+
+    def test_total_hours_create_update_and_delete(self):
+        first = self._task(hours=1.5)
+        second = self._task(hours=2.25)
+        self.assertAlmostEqual(self.equipment.total_maintenance_hours, 3.75)
+        first.hours = 0.5
+        self.assertAlmostEqual(self.equipment.total_maintenance_hours, 2.75)
+        second.unlink()
+        self.assertAlmostEqual(self.equipment.total_maintenance_hours, 0.5)
+        first.unlink()
+        self.assertEqual(self.equipment.total_maintenance_hours, 0)
+
+    def test_total_hours_reassign_equipment(self):
+        other = self.equipment.copy({"code": "TEST-OTHER"})
+        task = self._task(hours=1.5)
+        self.assertAlmostEqual(self.equipment.total_maintenance_hours, 1.5)
+        self.assertEqual(other.total_maintenance_hours, 0)
+        task.equipment_id = other
+        self.assertEqual(self.equipment.total_maintenance_hours, 0)
+        self.assertAlmostEqual(other.total_maintenance_hours, 1.5)
+        self.env.flush_all()
+        (self.equipment | other).invalidate_recordset(["total_maintenance_hours"])
+        self.assertEqual(self.equipment.total_maintenance_hours, 0)
+        self.assertAlmostEqual(other.total_maintenance_hours, 1.5)
+
+    def test_total_hours_includes_all_states(self):
+        for state in ["draft", "in_progress", "done", "cancelled"]:
+            self._task(state=state, hours=0.5)
+        self.assertAlmostEqual(self.equipment.total_maintenance_hours, 2)
+
     def test_negative_hours_rejected(self):
         with self.assertRaises(ValidationError), self.cr.savepoint():
             self._task(hours=-1)
