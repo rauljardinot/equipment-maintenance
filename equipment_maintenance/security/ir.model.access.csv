@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_equipment_internal,Equipos: usuarios internos,model_equipment_maintenance_equipment,base.group_user,1,1,1,1
-access_task_internal,Tareas: usuarios internos,model_equipment_maintenance_task,base.group_user,1,1,1,1
+access_equipment_internal,Equipos: usuario,model_equipment_maintenance_equipment,equipment_maintenance.group_maintenance_user,1,0,0,0
+access_task_internal,Tareas: usuario,model_equipment_maintenance_task,equipment_maintenance.group_maintenance_user,1,1,0,0
+access_equipment_manager,Equipos: responsable,model_equipment_maintenance_equipment,equipment_maintenance.group_maintenance_manager,1,1,1,1
+access_task_manager,Tareas: responsable,model_equipment_maintenance_task,equipment_maintenance.group_maintenance_manager,1,1,1,1

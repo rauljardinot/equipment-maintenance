@@ -1,5 +1,5 @@
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError, ValidationError
 
 
 class MaintenanceTask(models.Model):
@@ -19,6 +19,8 @@ class MaintenanceTask(models.Model):
     )
     planned_date = fields.Date(string="Fecha prevista", required=True, default=fields.Date.context_today)
     hours = fields.Float(string="Horas", default=0.0)
+    note = fields.Text(string="Nota")
+    can_manage = fields.Boolean(compute="_compute_can_manage")
     state = fields.Selection(
         [("draft", "Borrador"), ("in_progress", "En curso"),
          ("done", "Hecha"), ("cancelled", "Cancelada")],
@@ -27,6 +29,21 @@ class MaintenanceTask(models.Model):
     )
     equipment_code = fields.Char(related="equipment_id.code", string="Referencia")
     equipment_image = fields.Image(related="equipment_id.image_1920", string="Foto del equipo")
+
+    @api.depends_context("uid")
+    def _compute_can_manage(self):
+        can_manage = self.env.su or self.env.user.has_group(
+            "equipment_maintenance.group_maintenance_manager"
+        )
+        for task in self:
+            task.can_manage = can_manage
+
+    def write(self, vals):
+        if not self.env.su and not self.env.user.has_group(
+            "equipment_maintenance.group_maintenance_manager"
+        ) and set(vals) - {"state", "note"}:
+            raise AccessError(_("Solo puedes cambiar el estado y la nota de tus tareas asignadas."))
+        return super().write(vals)
 
     @api.model
     def _expand_states(self, states, domain):
