@@ -21,22 +21,78 @@ Módulo técnico: `equipment_maintenance`. No depende de la aplicación estánda
 - Referencia única mediante restricción SQL; horas no negativas y horas mayores
   que cero para finalizar, también al cambiar de estado arrastrando una tarjeta.
 
-## Instalación
+## Cómo ejecutarlo
 
-1. Agregar la ruta absoluta de este repositorio a `addons_path`, junto a los
-   addons estándar de Odoo 18.
-2. Reiniciar Odoo y actualizar la lista de aplicaciones en modo desarrollador.
-3. Buscar **Mantenimiento de equipos** e instalar.
+### Requisitos
 
-Por consola, sustituyendo las rutas y el nombre de la base:
+- Una instalación funcional de **Odoo 18** con sus dependencias Python y PostgreSQL.
+- Acceso a PostgreSQL con un usuario autorizado para crear la base de pruebas,
+  o una base vacía previamente creada para Odoo.
+- Este repositorio en el equipo donde se ejecuta Odoo. No requiere Enterprise.
+  Las dependencias del módulo son `base` y `web`.
+
+Clonar el proyecto si todavía no está disponible:
+
+```sh
+git clone https://github.com/rauljardinot/equipment-maintenance.git
+cd equipment-maintenance
+```
+
+Los siguientes comandos usan rutas de ejemplo: sustituir `/ruta/odoo18`,
+`/ruta/equipment-maintenance`, `/ruta/odoo.conf` y los nombres de base por los
+valores del entorno. Usar el Python o entorno virtual de la instalación de Odoo.
+El archivo `odoo.conf` debe contener la conexión local a PostgreSQL; no se incluye
+ni se publica con credenciales en este repositorio.
+
+### Instalar o actualizar
+
+Instalar en una base exclusiva para el ejercicio:
 
 ```sh
 python3 /ruta/odoo18/odoo-bin -c /ruta/odoo.conf \
   --addons-path=/ruta/odoo18/odoo/addons,/ruta/odoo18/addons,/ruta/equipment-maintenance \
-  -d base_pruebas -i equipment_maintenance --stop-after-init
+  -d equipment_maintenance_demo -i equipment_maintenance \
+  --without-demo=all --stop-after-init
 ```
 
-Para actualizar una instalación existente, sustituir `-i` por `-u`.
+Para actualizar una instalación existente, usar el mismo comando sustituyendo
+`-i equipment_maintenance` por `-u equipment_maintenance`.
+
+También se puede instalar desde la interfaz: añadir el repositorio a
+`addons_path`, reiniciar Odoo, actualizar la lista de aplicaciones en modo
+desarrollador y buscar **Mantenimiento de equipos**.
+
+### Iniciar el servidor
+
+El comando anterior termina tras instalar. Para entrar en la aplicación, iniciar
+Odoo sin `--stop-after-init`:
+
+```sh
+python3 /ruta/odoo18/odoo-bin -c /ruta/odoo.conf \
+  --addons-path=/ruta/odoo18/odoo/addons,/ruta/odoo18/addons,/ruta/equipment-maintenance \
+  -d equipment_maintenance_demo --http-port=8069
+```
+
+Abrir [Odoo local](http://localhost:8069/web), iniciar sesión y asignar los grupos
+indicados en **Seguridad y asignación de permisos**. Si el puerto está ocupado,
+elegir otro y ajustar la dirección del navegador. El menú no aparece para cuentas
+sin un grupo de mantenimiento asignado.
+
+### Recorrido de prueba manual
+
+1. Como administrador de usuarios, asignar **Responsable** a una cuenta y
+   **Usuario** a otra cuenta interna.
+2. Como Responsable, entrar en **Mantenimiento → Equipos** y crear un equipo con
+   nombre, referencia única, ubicación y, opcionalmente, foto.
+3. Crear una tarea, asignarla a la cuenta Usuario e indicar fecha y horas.
+4. Entrar con la cuenta Usuario: comprobar que solo ve sus tareas, editar la nota
+   y cambiar el estado. Los demás valores deben permanecer de solo lectura.
+5. Volver como Responsable y comprobar las horas totales del equipo.
+6. Comprobar que se rechazan referencias duplicadas, horas negativas y tareas
+   hechas con cero horas. Un equipo con tareas asociadas no puede eliminarse.
+
+Este recorrido queda documentado para la revisión manual; la validación ejecutada
+hasta ahora es la instalación/actualización y los tests automáticos.
 
 ## Tests
 
@@ -62,9 +118,12 @@ mientras la tarea no esté hecha.
 También se comprueba el total de horas sin tareas, al crear, editar y eliminar
 tareas, al trasladarlas a otro equipo y después de guardar y volver a leer el total.
 
-## Decisiones de esta etapa
+## Decisiones de diseño
 
+- Se usan modelos propios para mantener el ejercicio independiente de la
+  aplicación estándar de mantenimiento y concentrar las reglas en este módulo.
 - La referencia corresponde al código único solicitado, sensible a mayúsculas.
+  La unicidad se garantiza en PostgreSQL, incluso ante creaciones simultáneas.
 - El estado pertenece a la tarea: un equipo puede tener varias tareas en estados
   diferentes. El kanban de equipos muestra sus datos y foto; el de tareas añade
   estado y responsable.
@@ -122,30 +181,81 @@ de estado y nota, bloqueo de los demás campos y de escrituras mixtas, creación
 copia y eliminación prohibidas, restricciones de equipos, horas al finalizar,
 acceso completo del Responsable y denegación al usuario interno sin grupo.
 
-## Próximas etapas / con más tiempo
+## Qué haría con más tiempo
 
-- Revisar visualmente las vistas con datos reales.
+- Revisar las vistas en navegador con ambos perfiles, distintas resoluciones,
+  equipos con y sin foto y suficientes tareas para comprobar la navegación.
+- Añadir tests de interfaz para los botones, el arrastre en kanban y la edición
+  de notas, además de los tests actuales del servidor.
+- Incorporar un historial de notas y cambios de estado con autor y fecha;
+  actualmente la nota es un texto editable, sin trazabilidad de sus versiones.
+- Añadir planificación recurrente y avisos de vencimiento si el alcance lo requiere.
+- Medir el cálculo de horas con grandes volúmenes y valorar una suma agregada
+  para reducir la lectura de tareas por equipo.
+- Automatizar los tests en CI sobre una base temporal de Odoo 18.
 
-## Uso de IA
+Estas mejoras no forman parte de la funcionalidad implementada.
 
-Se pidió a Codex implementar esta primera etapa para Odoo 18: modelos, menús,
-listas, formularios, kanban con foto y búsqueda por estado y responsable.
-Se aceptaron los modelos propios, el estado de tarea, la foto relacionada,
-las restricciones y los tests. Se contrastó la estructura de vistas con la
+## Cómo se usó la IA
+
+El desarrollo se realizó con Codex a partir de instrucciones del usuario, por
+etapas. Se indica qué se incorporó al código y qué se corrigió durante la
+validación; la revisión visual y la aceptación funcional del usuario siguen
+pendientes.
+
+### Qué se le pidió
+
+- Crear el repositorio público y desarrollar un módulo para **Odoo 18**.
+- Implementar equipos, tareas, menús, vistas de lista y formulario y kanban con
+  foto, referencia, agrupación y búsqueda por estado y responsable.
+- Garantizar código único, horas no negativas, finalización con horas positivas
+  y botones para cambiar de estado.
+- Calcular las horas totales por equipo.
+- Limitar al Usuario a sus tareas asignadas, estado y nota, y dar al Responsable
+  permisos para crear, editar y eliminar.
+- Añadir tests `TransactionCase`, documentación y commits progresivos.
+
+### Qué se aceptó e incorporó
+
+- Modelos propios, estado en la tarea y foto/referencia relacionadas desde el equipo.
+- Restricción SQL para el código único y validación de horas en el modelo, para
+  cubrir formulario, cambios directos, importaciones y arrastre en kanban.
+- Total calculado y almacenado con dependencias sobre las horas de las tareas;
+  suma todos los estados, incluidas las tareas canceladas.
+- Seguridad mediante ACL, reglas de registro y una lista de campos permitidos
+  en `write`; los campos de solo lectura en las vistas complementan esa seguridad.
+- Nota de texto editable y dos grupos, con el Responsable heredando del Usuario.
+- Tests con usuarios de prueba y bases separadas, sin modificar la base de trabajo.
+
+### Qué se corrigió o ajustó
+
+- La primera ejecución de pruebas encontró un puerto ocupado. Se configuró
+  `--http-port=0` para que el sistema eligiera uno libre, con workers y cron
+  desactivados en la ejecución de tests.
+- Se amplió la cobertura inicial de cuatro tests: primero se comprobaron las
+  reglas al editar y escribir estados directamente; después, el recálculo de
+  horas y la seguridad, hasta llegar a **24 tests**.
+- Al introducir los grupos se sustituyeron las ACL iniciales de todos los usuarios
+  internos por ACL de los grupos específicos, reutilizando sus identificadores
+  para que la actualización retire los permisos anteriores.
+- Una prueba detectó identificadores de tareas ajenas en el historial relacional
+  en caché de un equipo compartido. Se restringieron el historial y el total de
+  horas al Responsable y se añadieron comprobaciones de acceso a esos campos.
+- Se documentó que Configuración, definido sin acción ni submenús, queda oculto
+  por Odoo hasta añadir su primera opción.
+
+### Cómo se verificó el resultado
+
+Se contrastó la estructura de vistas con la
 [documentación oficial de Odoo 18](https://www.odoo.com/documentation/18.0/developer/reference/user_interface/view_architectures.html)
-y se verificó la firma de agrupación en el código local de Odoo.
-Se corrigió la ejecución de las pruebas para usar un puerto HTTP libre,
-evitar el conflicto con el servidor local y trabajar en una base separada.
-Los commits separan modelos y permisos básicos, interfaz, y pruebas/documentación.
-En la revisión de reglas se conservaron las validaciones ya implementadas y se
-amplió la cobertura de cuatro a diez tests, incluyendo edición y cambios directos
-de estado para comprobar que no dependen únicamente de los botones.
-Para el total por equipo se pidió un campo calculado; se aceptó sumar las horas
-de todas las tareas sin filtrar por estado y se añadieron pruebas de recálculo,
-reasignación y persistencia del resultado.
+y la firma de agrupación con el código local de Odoo. Se instaló y actualizó
+el módulo en una base de pruebas y se ejecutaron los **24 tests `TransactionCase`
+sin fallos ni errores**. Esto valida las reglas y permisos en el servidor;
+la revisión visual en navegador todavía está pendiente.
 
-Para seguridad se pidió un Usuario limitado a sus asignaciones y un Responsable
-con administración completa. Se implementaron ACL, reglas de registro, un límite
-de campos en el servidor y una nota de texto. Las pruebas detectaron que el
-historial relacional de un equipo compartido podía contener identificadores de
-otras tareas en caché; se restringieron ese historial y el total al Responsable.
+Los commits separan modelos, interfaz, reglas, total de horas, seguridad y
+ampliaciones de tests/documentación. El historial puede consultarse con:
+
+```sh
+git log --oneline --reverse
+```
